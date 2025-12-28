@@ -13,37 +13,35 @@ jobs:
           fetch-depth: 0
           lfs: true
 
-      - name: Prepare and Push to Hugging Face
+      - name: Push to Hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          # REPLACE 'envererman08' WITH YOUR HF USERNAME IF DIFFERENT
-          HF_USERNAME: envererman08  
-          # REPLACE 'stock-analysis-ai' WITH YOUR EXACT SPACE NAME
+          HF_USERNAME: envererman08
           SPACE_NAME: stock-analysis-ai
         run: |
-          echo " Starting Deployment..."
+          git config --global user.email "ci@github.com"
+          git config --global user.name "CI Agent"
           
-          # Configure Git
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          
-          # Navigate to the folder we want to deploy
+          # Go to the folder we want to deploy
           cd stock
           
-          # Rename the unified app file to app.py if it isn't already
+          # Rename files for HF structure
           if [ -f "huggingface_app.py" ]; then
             mv huggingface_app.py app.py
           fi
-          
-          # Rename requirements for HF if needed (we created both, but just to be safe)
           if [ -f "requirements_hf.txt" ]; then
             cp requirements_hf.txt requirements.txt
           fi
           
-          # Initialize a fresh git repo for deployment
+          # Initialize new repo
           git init
-          git add .
-          git commit -m "Deploying from GitHub Actions"
+          git lfs install
+          # Track large files just in case
+          git lfs track "*.joblib"
           
-          # Force push to Hugging Face Space
+          git add .
+          git commit -m "Deploy from GitHub CI"
+          
+          # FORCE PUSH to handle any history mismatch
+          # We use --force to overwrite whatever was on HF with this new pristine version
           git push --force https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$SPACE_NAME main
