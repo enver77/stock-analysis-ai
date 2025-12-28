@@ -1,0 +1,11 @@
+streamlit
+yfinance
+pandas
+numpy==1.26.4
+scikit-learn
+joblib
+transformers
+torch
+plotly
+openpyxl
+requests

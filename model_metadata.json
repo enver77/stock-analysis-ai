@@ -1,0 +1,12 @@
+{
+  "model_type": "AdaBoostClassifier",
+  "trained_at": "2025-12-28T15:18:47.662664",
+  "accuracy": 0.4834710743801653,
+  "features": [
+    "Returns",
+    "Dist_SMA_20",
+    "Dist_SMA_50",
+    "RSI",
+    "Vol_Change"
+  ]
+}
