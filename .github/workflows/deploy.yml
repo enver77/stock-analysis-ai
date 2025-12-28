@@ -67,7 +67,8 @@ jobs:
               print('--> Authenticathing...')
               api = HfApi(token=token)
               user = api.whoami()
-              print(f'--> Logged in as: {user[\'name\']}')
+              name = user['name']
+              print(f'--> Logged in as: {name}')
               
               print('--> Uploading folder...')
               api.upload_folder(
