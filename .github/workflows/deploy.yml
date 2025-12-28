@@ -1,47 +1,32 @@
-name: Deploy to Hugging Face Spaces
+name: Deploy to Hugging Face
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
 jobs:
-  deploy:
+  sync-to-hub:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           lfs: true
-
-      - name: Push to Hub
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_USERNAME: envererman08
-          SPACE_NAME: stock-analysis-ai
+      
+      # 1. Prepare files locally before syncing
+      - name: Prepare Files
         run: |
-          git config --global user.email "ci@github.com"
-          git config --global user.name "CI Agent"
-          
-          # Go to the folder we want to deploy
           cd stock
+          # Rename only if they exist, otherwise ignore
+          cp huggingface_app.py app.py || true
+          cp requirements_hf.txt requirements.txt || true
           
-          # Rename files for HF structure
-          if [ -f "huggingface_app.py" ]; then
-            mv huggingface_app.py app.py
-          fi
-          if [ -f "requirements_hf.txt" ]; then
-            cp requirements_hf.txt requirements.txt
-          fi
-          
-          # Initialize new repo
-          git init
-          git lfs install
-          # Track large files just in case
-          git lfs track "*.joblib"
-          
-          git add .
-          git commit -m "Deploy from GitHub CI"
-          
-          # FORCE PUSH to handle any history mismatch
-          # We use --force to overwrite whatever was on HF with this new pristine version
-          git push --force https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$SPACE_NAME main
+      # 2. Use the official Sync Action (Reliable)
+      # This mirrors the 'stock' folder to the HF Root
+      - name: Push to hub
+        uses: nateraw/huggingface-sync-action@v1
+        with:
+          github_repo_dir: stock
+          huggingface_repo_id: envererman08/stock-analysis-ai
+          huggingface_repo_type: space
+          hf_token: ${{ secrets.HF_TOKEN }}
