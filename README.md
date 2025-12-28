@@ -2,6 +2,8 @@
 
 **Empowering Investment with Hybrid AI Intelligence**
 
+![Deployment Status](https://img.shields.io/badge/Deployment-Automated%20with%20GitHub%20Actions-blue)
+
 This application helps investors identify undervalued stocks and predict market movements by combining two powerful Artificial Intelligence approaches:
 1.  **Quantitative Machine Learning (Custom Trained)**: An AdaBoost Classifier trained on 5 years of historical S&P 500 data.
 2.  **Natural Language Processing (State-of-the-Art)**: Hugging Face's `ProsusAI/finbert` model for financial news sentiment analysis.
