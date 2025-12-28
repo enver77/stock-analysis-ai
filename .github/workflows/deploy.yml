@@ -5,28 +5,61 @@ on:
   workflow_dispatch:
 
 jobs:
-  sync-to-hub:
+  deploy-via-python:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          lfs: true
       
-      # 1. Prepare files locally before syncing
-      - name: Prepare Files
-        run: |
-          cd stock
-          # Rename only if they exist, otherwise ignore
-          cp huggingface_app.py app.py || true
-          cp requirements_hf.txt requirements.txt || true
-          
-      # 2. Use the official Sync Action (Reliable)
-      # This mirrors the 'stock' folder to the HF Root
-      - name: Push to hub
-        uses: nateraw/huggingface-sync-action@v1
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          github_repo_dir: stock
-          huggingface_repo_id: envererman08/stock-analysis-ai
-          huggingface_repo_type: space
-          hf_token: ${{ secrets.HF_TOKEN }}
+          python-version: '3.10'
+          
+      - name: Install Hugging Face Hub
+        run: pip install huggingface_hub
+
+      - name: Upload to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          # ⚠️ VERIFY THIS: username/space-name
+          HF_REPO_ID: envererman08/stock-analysis-ai
+        run: |
+          print("Starting deployment...")
+          
+          # Prepare the files in the stock folder
+          cd stock
+          if [ -f "huggingface_app.py" ]; then
+            cp huggingface_app.py app.py
+          fi
+          if [ -f "requirements_hf.txt" ]; then
+            cp requirements_hf.txt requirements.txt
+          fi
+          
+          # Run Python script to upload via API
+          python -c "
+          from huggingface_hub import HfApi
+          import os
+          
+          token = os.environ['HF_TOKEN']
+          repo_id = os.environ['HF_REPO_ID']
+          
+          print(f'Deploying to {repo_id}...')
+          
+          try:
+              api = HfApi(token=token)
+              # Verify we can access the repo
+              user = api.whoami()
+              print(f'Logged in as: {user[\'name\']}')
+              
+              api.upload_folder(
+                  folder_path='.',
+                  repo_id=repo_id,
+                  repo_type='space',
+                  ignore_patterns=['__pycache__', '*.git*', 'Dockerfile*', '.gitignore'],
+                  commit_message='Deployed from GitHub Actions (Python API)'
+              )
+              print('✅ Upload successful!')
+          except Exception as e:
+              print(f'❌ Error: {e}')
+              exit(1)
+          "
