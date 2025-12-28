@@ -5,10 +5,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy-via-python:
+  debug-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          lfs: true
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -18,48 +20,66 @@ jobs:
       - name: Install Hugging Face Hub
         run: pip install huggingface_hub
 
-      - name: Upload to Hugging Face
+      - name: Debug and Upload
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          # ⚠️ VERIFY THIS: username/space-name
           HF_REPO_ID: envererman08/stock-analysis-ai
         run: |
-          print("Starting deployment...")
+          echo "==== DEBUG INFO ===="
+          ls -R
+          echo "===================="
           
-          # Prepare the files in the stock folder
-          cd stock
-          if [ -f "huggingface_app.py" ]; then
-            cp huggingface_app.py app.py
-          fi
-          if [ -f "requirements_hf.txt" ]; then
-            cp requirements_hf.txt requirements.txt
-          fi
-          
-          # Run Python script to upload via API
           python -c "
-          from huggingface_hub import HfApi
           import os
-          
-          token = os.environ['HF_TOKEN']
-          repo_id = os.environ['HF_REPO_ID']
-          
-          print(f'Deploying to {repo_id}...')
+          import traceback
+          from huggingface_hub import HfApi
           
           try:
-              api = HfApi(token=token)
-              # Verify we can access the repo
-              user = api.whoami()
-              print(f'Logged in as: {user[\'name\']}')
+              print('--> Starting Python Deploy Script')
               
+              token = os.environ.get('HF_TOKEN')
+              if not token:
+                  raise ValueError('HF_TOKEN is missing from environment!')
+              print(f'--> Token detected: {token[:4]}***')
+              
+              repo_id = os.environ.get('HF_REPO_ID')
+              print(f'--> Target Repo: {repo_id}')
+              
+              # Prepare 'stock' folder
+              target_dir = 'stock'
+              if not os.path.exists(target_dir):
+                  raise FileNotFoundError('Stock folder not found!')
+                  
+              # Rename logic
+              src_app = os.path.join(target_dir, 'huggingface_app.py')
+              dst_app = os.path.join(target_dir, 'app.py')
+              if os.path.exists(src_app):
+                  print(f'--> Renaming {src_app} to {dst_app}')
+                  os.rename(src_app, dst_app)
+                  
+              src_req = os.path.join(target_dir, 'requirements_hf.txt')
+              dst_req = os.path.join(target_dir, 'requirements.txt')
+              if os.path.exists(src_req):
+                  print(f'--> Renaming {src_req} to {dst_req}')
+                  os.rename(src_req, dst_req)
+              
+              # Upload
+              print('--> Authenticathing...')
+              api = HfApi(token=token)
+              user = api.whoami()
+              print(f'--> Logged in as: {user[\'name\']}')
+              
+              print('--> Uploading folder...')
               api.upload_folder(
-                  folder_path='.',
+                  folder_path=target_dir,
                   repo_id=repo_id,
                   repo_type='space',
-                  ignore_patterns=['__pycache__', '*.git*', 'Dockerfile*', '.gitignore'],
-                  commit_message='Deployed from GitHub Actions (Python API)'
+                  ignore_patterns=['__pycache__', '*.git*', 'Dockerfile*']
               )
-              print('✅ Upload successful!')
+              print('✅ SUCCESS!')
+              
           except Exception as e:
-              print(f'❌ Error: {e}')
+              print('❌ FAILURE DETAILS:')
+              traceback.print_exc()
               exit(1)
           "

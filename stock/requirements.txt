@@ -1,11 +1,11 @@
+streamlit
 yfinance
 pandas
 numpy==1.26.4
 scikit-learn
-matplotlib
-seaborn
-openpyxl
-fastapi
-uvicorn
+joblib
 transformers
 torch
+plotly
+openpyxl
+requests
