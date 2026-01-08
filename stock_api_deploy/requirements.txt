@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+yfinance
+pandas
+numpy==1.26.4
+joblib
+scikit-learn
+transformers
+torch
+requests
